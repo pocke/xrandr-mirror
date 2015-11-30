@@ -20,7 +20,12 @@ func Main() error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(ds)
+	s := make([][]string, 0, len(ds))
+	for _, d := range ds {
+		s = append(s, d.Sizes)
+	}
+	size := Intersection(s...)[0]
+	fmt.Println(size)
 	return nil
 }
 
@@ -30,7 +35,7 @@ type Display struct {
 }
 
 func GetDisplays() ([]Display, error) {
-	b, err := ExecWithMsg("xrandr")
+	b, err := exec.Command("xrandr").Output()
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +46,7 @@ func GetDisplays() ([]Display, error) {
 	for sc.Scan() {
 		name, err := submatch(sc.Text(), `^(\w+) connected`, 0)
 		if _, ok := err.(*notMatchErr); ok {
-			size, err := submatch(sc.Text(), `^\s+(\d+x\d+)\s+`, 0)
+			size, err := submatch(sc.Text(), `^\s+(\d+x\w+)\s+`, 0)
 			if _, ok := err.(*notMatchErr); ok {
 				continue
 			}
@@ -93,4 +98,21 @@ func submatch(s, re string, n int) (string, error) {
 		return "", &notMatchErr{re: re, s: s}
 	}
 	return ma[n], nil
+}
+
+func Intersection(s ...[]string) []string {
+	if len(s) == 1 {
+		return s[0]
+	}
+
+	res := make([]string, 0)
+	for _, v := range s[0] {
+		for _, w := range s[1] {
+			if v == w {
+				res = append(res, v)
+				break
+			}
+		}
+	}
+	return Intersection(append(s[2:], res)...)
 }
