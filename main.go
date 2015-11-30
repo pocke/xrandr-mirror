@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"os"
 	"os/exec"
 	"regexp"
 	"strings"
@@ -25,7 +26,17 @@ func Main() error {
 		s = append(s, d.Sizes)
 	}
 	size := Intersection(s...)[0]
-	fmt.Println(size)
+
+	for i, d := range ds {
+		args := []string{"--output", d.Name, "--mode", size}
+		if i != 0 {
+			args = append(args, "--same-as", ds[0].Name)
+		}
+		err := ExecWithMsg("xrandr", args...)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -71,9 +82,13 @@ func GetDisplays() ([]Display, error) {
 	return ds, nil
 }
 
-func ExecWithMsg(cmd string, args ...string) ([]byte, error) {
+func ExecWithMsg(cmd string, args ...string) error {
 	fmt.Printf("%s %s\n", cmd, strings.Join(args, " "))
-	return exec.Command(cmd, args...).Output()
+	c := exec.Command(cmd, args...)
+	c.Stdin = os.Stdin
+	c.Stdout = os.Stdout
+	c.Stderr = os.Stderr
+	return c.Run()
 }
 
 type notMatchErr struct {
