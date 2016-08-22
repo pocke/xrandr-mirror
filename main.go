@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"flag"
 	"fmt"
 	"os"
 	"os/exec"
@@ -21,11 +22,15 @@ func Main() error {
 	if err != nil {
 		return err
 	}
-	s := make([][]string, 0, len(ds))
-	for _, d := range ds {
-		s = append(s, d.Sizes)
+
+	sizeLevel := 0
+	flag.IntVar(&sizeLevel, "size", 0, "size level")
+	flag.Parse()
+
+	size, err := getSize(ds, sizeLevel)
+	if err != nil {
+		return err
 	}
-	size := Intersection(s...)[0]
 
 	for i, d := range ds {
 		args := []string{"--output", d.Name, "--mode", size}
@@ -38,6 +43,19 @@ func Main() error {
 		}
 	}
 	return nil
+}
+
+// returns size
+func getSize(displays []Display, sizeLevel int) (string, error) {
+	s := make([][]string, 0, len(displays))
+	for _, d := range displays {
+		s = append(s, d.Sizes)
+	}
+	sizes := Intersection(s...)
+	if len(sizes) < sizeLevel {
+		return "", fmt.Errorf("Size level too deep. Please specify 0..%d", len(sizes))
+	}
+	return sizes[sizeLevel], nil
 }
 
 type Display struct {
